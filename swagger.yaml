@@ -1,0 +1,127 @@
+swagger: '2.0'
+info:
+  title: People API
+  description: People API description
+  version: "1.0.0"
+# the domain of the service
+host: people-api.targetedvictory.com
+# array of all schemes that your API supports
+schemes:
+  - https
+# will be prefixed to all paths
+basePath: /v1
+produces:
+  - application/json
+paths:
+  /people/datatrust:
+    get:
+      summary: Find Person by query string
+      operationId: findDatatrustPersonByQueryString
+      description: |
+        Find Person by query string
+      parameters:
+        - name: first_name
+          in: query
+          description: First name
+          required: false
+          type: string
+        - name: last_name
+          in: query
+          description: Last name
+          required: true
+          type: string
+        - name: zip
+          in: query
+          description: Postal code
+          required: false
+          type: string
+      tags:
+        - People Datatrust
+      responses:
+        200:
+          description: The best match
+          schema:
+            $ref: '#/definitions/DatatrustMatchResponse'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /people/datatrust/search:
+    post:
+      summary: Find Person by search criteria
+      operationId: findDatatrustPersonBySearchCriteria
+      consumes: [application/json]
+      description: |
+        Find Person by search criteria description
+      parameters:
+        - name: searchCriteria
+          in: body
+          description: Search criteria
+          schema:
+            $ref: '#/definitions/DatatrustMatchRequest'
+      tags:
+        - People Datatrust
+      responses:
+        200:
+          description: The best match
+          schema:
+            $ref: '#/definitions/DatatrustMatchResponse'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+definitions:
+  DatatrustMatchRequest:
+    properties:
+      first_name:
+        type: string
+        description: First name
+      last_name:
+        type: string
+        description: Last name
+      zip:
+        type: string
+        description: Postal code
+    required:
+      - last_name
+  DatatrustMatchResponse:
+    properties:
+      uuid:
+        type: string
+        description: Unique identifier for the person
+      dt_regid:
+        type: string
+        description: dt_regid
+      first_name:
+        type: string
+        description: first_name
+      middle_name:
+        type: string
+        description: middle_name
+      last_name:
+        type: string
+        description: last_name
+      prefix:
+        type: string
+        description: prefix
+      suffix:
+        type: string
+        description: suffix
+      zip:
+        type: string
+        description: zip
+    required:
+      - uuid
+      - dt_regid
+      - first_name
+      - last_name
+      - zip
+  Error:
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+      fields:
+        type: string

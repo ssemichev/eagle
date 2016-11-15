@@ -1,0 +1,82 @@
+[
+  {
+    "ParameterKey": "ECSName",
+    "ParameterValue": "${ECS_NAME}"
+  },
+  {
+    "ParameterKey": "ECSClusterName",
+    "ParameterValue": "${ECS_CLUSTER_NAME}"
+  },
+  {
+    "ParameterKey": "TargetGroupArn",
+    "ParameterValue": "${TARGET_GROUP_ARN}"
+  },
+  {
+    "ParameterKey": "ListenerArn",
+    "ParameterValue": "${LISTENER_ARN}"
+  },
+  {
+    "ParameterKey": "AwsLogsGroup",
+    "ParameterValue": "${CLOUDWATCH_LOG_GROUP}"
+  },
+  {
+    "ParameterKey": "ImageName",
+    "ParameterValue": "${IMAGE_NAME}"
+  },
+  {
+    "ParameterKey": "DesiredCountOfTasks",
+    "ParameterValue": "${DESIRED_COUNT_OF_TASKS}"
+  },
+  {
+    "ParameterKey": "MinCapacity",
+    "ParameterValue": "${MIN_CAPACITY}"
+  },
+  {
+    "ParameterKey": "MaxCapacity",
+    "ParameterValue": "${MAX_CAPACITY}"
+  },
+  {
+    "ParameterKey": "RequiredCpu",
+    "ParameterValue": "${REQUIRED_CPU}"
+  },
+  {
+    "ParameterKey": "RequiredMemory",
+    "ParameterValue": "${REQUIRED_MEMORY}"
+  },
+  {
+    "ParameterKey": "ListenerRuleConditions",
+    "ParameterValue": "${LISTENER_RULE_CONDITIONS}"
+  },
+  {
+    "ParameterKey": "ListenerRulePriority",
+    "ParameterValue": "${LISTENER_RULE_PRIORITY}"
+  },
+  {
+    "ParameterKey": "NotificationSNSTopic",
+    "ParameterValue": "${NOTIFICATION_SNS_TOPIC}"
+  },
+  {
+    "ParameterKey": "AKKALOGLEVEL",
+    "ParameterValue": "${AKKA_LOGLEVEL}"
+  },
+  {
+    "ParameterKey": "ESPEOPLEINDEX",
+    "ParameterValue": "${ES_PEOPLE_INDEX}"
+  },
+  {
+    "ParameterKey": "ESVOTERDATACLUSTERNAME",
+    "ParameterValue": "${ES_VOTER_DATA_CLUSTER_NAME}"
+  },
+  {
+    "ParameterKey": "ESVOTERDATACLUSTERURI",
+    "ParameterValue": "${ES_VOTER_DATA_CLUSTER_URI}"
+  },
+  {
+    "ParameterKey": "HTTPSEARCHUSERNAME",
+    "ParameterValue": "${HTTP_SEARCH_USER_NAME}"
+  },
+  {
+    "ParameterKey": "HTTPSEARCHUSERPASSWORD",
+    "ParameterValue": "${HTTP_SEARCH_USER_PASSWORD}"
+  }
+]

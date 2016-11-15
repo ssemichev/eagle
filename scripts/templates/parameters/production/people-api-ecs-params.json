@@ -1,0 +1,38 @@
+[
+  {
+    "ParameterKey": "ECSName",
+    "ParameterValue": "people-api"
+  },
+  {
+    "ParameterKey": "ExternalDNSName",
+    "ParameterValue": "people.<DOMAIN>.io"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t2.large"
+  },
+  {
+    "ParameterKey": "DesiredCapacity",
+    "ParameterValue": "4"
+  },
+  {
+    "ParameterKey": "MinSize",
+    "ParameterValue": "4"
+  },
+  {
+    "ParameterKey": "MaxSize",
+    "ParameterValue": "10"
+  },
+  {
+    "ParameterKey": "OperatorEMail",
+    "ParameterValue": "<EMAIL>"
+  },
+  {
+    "ParameterKey": "Usage",
+    "ParameterValue": "people-api"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "production"
+  }
+]

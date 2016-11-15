@@ -1,0 +1,491 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This templates creates ECS cluster and auto scaling group for people API micro services",
+
+  "Parameters": {
+    "ECSName": {
+      "Type": "String",
+      "Description": "name of ECS service."
+    },
+    "ECSClusterName": {
+      "Type": "String",
+      "Description": "name of ECS cluster."
+    },
+    "Region": {
+      "Type": "String",
+      "Default": "us-east-1",
+      "AllowedValues": [
+        "us-east-1"
+      ],
+      "ConstraintDescription": "AWS region in which to create instances."
+    },
+    "ImageName": {
+      "Type": "String",
+      "Description": "the image used to start a container."
+    },
+    "TargetGroupArn": {
+      "Type": "String",
+      "Description": "an Application load balancer target group Amazon Resource Name (ARN) to associate with the Amazon ECS service."
+    },
+    "ListenerArn": {
+      "Type": "String",
+      "Description": "the Amazon Resource Name (ARN) of the listener that the rule applies to."
+    },
+    "AwsLogsGroup": {
+      "Type": "String",
+      "Description": "the ARN of the CloudWatch Logs log group."
+    },
+    "AwsLogsStreamPrefix": {
+      "Type": "String",
+      "Default": "rest",
+      "Description": "the awslogs-stream-prefix option allows you to associate a log stream with the specified prefix."
+    },
+    "Owner": {
+      "Type": "String",
+      "Default": "people-api"
+    },
+    "RequiredCpu": {
+      "Type" : "Number",
+      "Default" : "128",
+      "MinValue" : "0",
+      "MaxValue" : "1024",
+      "Description" : "the number of cpu units to reserve for the container."
+    },
+    "RequiredMemory": {
+      "Type" : "Number",
+      "Default" : "1024",
+      "MinValue" : "1024",
+      "MaxValue" : "4096",
+      "Description" : "the hard limit (in MiB) of memory to present to the container."
+    },
+    "MemoryReservation": {
+      "Type" : "Number",
+      "Default" : "512",
+      "MinValue" : "128",
+      "MaxValue" : "4096",
+      "Description" : "the soft limit (in MiB) of memory to reserve for the container."
+    },
+    "DesiredCountOfTasks": {
+      "Description" : "the number of simultaneous tasks, which you specify by using the TaskDefinition property, that you want to run on the cluster.",
+      "Type" : "Number",
+      "Default" : "1",
+      "MinValue" : "1",
+      "MaxValue" : "100"
+    },
+    "MinCapacity": {
+      "Description": "The minimum value that Application Auto Scaling can use to scale a target during a scaling activity.",
+      "Type": "Number",
+      "Default" : "3",
+      "MinValue" : "1",
+      "MaxValue" : "10",
+      "ConstraintDescription": "must be a number between 1 and 10"
+    },
+    "MaxCapacity": {
+      "Description": "The maximum value that Application Auto Scaling can use to scale a target during a scaling activity.",
+      "Type": "Number",
+      "Default" : "7",
+      "MinValue" : "3",
+      "MaxValue" : "50",
+      "ConstraintDescription": "must be a number between 3 and 50"
+    },
+    "HostPortMapping": {
+      "Type" : "Number",
+      "Default" : "0",
+      "Description" : "the port number on the container instance to reserve for your container."
+    },
+    "ContainerPort": {
+      "Type" : "Number",
+      "Default" : "9000",
+      "Description" : "the port number on the container to direct load balancer traffic to."
+    },
+    "ListenerRuleConditions": {
+      "Type": "CommaDelimitedList",
+      "Description" : "the conditions under which a rule takes effect."
+    },
+    "ListenerRulePriority": {
+      "Type" : "Number",
+      "MinValue" : "1",
+      "MaxValue" : "100",
+      "Description" : "the priority for the rule. Elastic Load Balancing evaluates rules in priority order, from the lowest value to the highest value."
+    },
+    "NotificationSNSTopic": {
+      "Type": "String",
+      "Description": "ARN of the SNS notification topic."
+    },
+    "HighCpuUtilization" : {
+      "Description" : "Threshold for CPU Utilization to trigger to run additional tasks of the ECS service",
+      "Type" : "Number",
+      "Default" : "80",
+      "MinValue" : "1",
+      "MaxValue" : "100",
+      "ConstraintDescription": "must be a number between 1 and 100"
+    },
+    "HighMemoryUtilization" : {
+      "Description" : "Threshold for Memory Utilization to trigger to run additional tasks of the ECS service",
+      "Type" : "Number",
+      "Default" : "70",
+      "MinValue" : "1",
+      "MaxValue" : "100",
+      "ConstraintDescription": "must be a number between 1 and 100"
+    },
+    "LowCpuUtilization" : {
+      "Description" : "Threshold for CPU Utilization to trigger to run additional tasks of the ECS service",
+      "Type" : "Number",
+      "Default" : "5",
+      "MinValue" : "0",
+      "MaxValue" : "100",
+      "ConstraintDescription": "must be a number between 0 and 100"
+    },
+    "AKKALOGLEVEL" : {
+      "Type" : "String",
+      "Default" : "INFO",
+      "AllowedValues" : [ "OFF", "ERROR", "WARNING", "INFO", "DEBUG" ],
+      "Description" : "Application logging options"
+    },
+    "ESPEOPLEINDEX" : {
+      "Type" : "String",
+      "Default" : "vengine_datatrust_dev",
+      "Description" : "Application Environment Variable ES_PEOPLE_INDEX"
+    },
+    "ESVOTERDATACLUSTERNAME" : {
+      "Type" : "String",
+      "Default" : "es-dev",
+      "Description" : "Application Environment Variable ES_VOTER_DATA_CLUSTER_NAME"
+    },
+    "ESVOTERDATACLUSTERURI" : {
+      "Type" : "String",
+      "Default" : "search-01.dev.process.prod:9300,search-02.dev.process.prod:9300",
+      "Description" : "Application Environment Variable ES_VOTER_DATA_CLUSTER_URI"
+    },
+    "HTTPSEARCHUSERNAME" : {
+      "Type" : "String",
+      "Default" : "search-user",
+      "Description" : "Application Environment Variable HTTP_SEARCH_USER_NAME"
+    },
+    "HTTPSEARCHUSERPASSWORD" : {
+      "Type" : "String",
+      "Description" : "Application Environment Variable HTTP_SEARCH_USER_PASSWORD"
+    }
+  },
+
+  "Resources": {
+
+    "TaskDefinition": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties" : {
+        "ContainerDefinitions" : [
+          {
+            "Name": "people-api-rest",
+            "Image": { "Ref" : "ImageName" },
+            "Memory": { "Ref" : "RequiredMemory" },
+            "PortMappings": [
+              {
+                "HostPort": { "Ref" : "HostPortMapping" },
+                "ContainerPort": { "Ref" : "ContainerPort" }
+              }
+            ],
+            "Environment": [
+              {
+                "Name": "AKKA_LOGLEVEL",
+                "Value": { "Ref" : "AKKALOGLEVEL" }
+              },
+              {
+                "Name": "ES_PEOPLE_INDEX",
+                "Value": { "Ref" : "ESPEOPLEINDEX" }
+              },
+              {
+                "Name": "ES_VOTER_DATA_CLUSTER_NAME",
+                "Value": { "Ref" : "ESVOTERDATACLUSTERNAME" }
+              },
+              {
+                "Name": "ES_VOTER_DATA_CLUSTER_URI",
+                "Value": { "Ref" : "ESVOTERDATACLUSTERURI" }
+              },
+              {
+                "Name": "HTTP_SEARCH_USER_NAME",
+                "Value": { "Ref" : "HTTPSEARCHUSERNAME" }
+              },
+              {
+                "Name": "HTTP_SEARCH_USER_PASSWORD",
+                "Value": { "Ref" : "HTTPSEARCHUSERPASSWORD" }
+              }
+            ],
+            "Cpu": { "Ref" : "RequiredCpu" },
+            "Essential": true,
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": { "Ref" : "ECSName" },
+                "awslogs-region": { "Ref" : "Region" },
+                "awslogs-stream-prefix": { "Ref" : "AwsLogsStreamPrefix" }
+              }
+            },
+            "DockerLabels": {
+              "owner": "Targeted Victory",
+              "version": { "Ref" : "ImageName" }
+            }
+          }
+        ]
+      }
+    },
+
+    "ListenerRule": {
+      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "Properties": {
+        "Actions": [{
+          "Type": "forward",
+          "TargetGroupArn": { "Ref": "TargetGroupArn" }
+        }],
+        "Conditions": [{
+          "Field": "path-pattern",
+          "Values": { "Ref" : "ListenerRuleConditions" }
+        }],
+        "ListenerArn": { "Ref": "ListenerArn" },
+        "Priority": { "Ref" : "ListenerRulePriority"}
+      }
+    },
+
+    "ECSService": {
+      "Type": "AWS::ECS::Service",
+      "Properties" : {
+        "Cluster": { "Ref" : "ECSClusterName" },
+        "DeploymentConfiguration": {
+          "MaximumPercent" : 200,
+          "MinimumHealthyPercent" : 50
+        },
+        "DesiredCount": { "Ref" : "DesiredCountOfTasks" },
+        "LoadBalancers": [
+          {
+            "ContainerName": "people-api-rest",
+            "ContainerPort": { "Ref" : "ContainerPort" },
+            "TargetGroupArn" : { "Ref" : "TargetGroupArn" }
+          }
+        ],
+        "Role" : "ecs-service-role",
+        "TaskDefinition" : {"Ref":"TaskDefinition"}
+      }
+    },
+
+    "ScalableTarget" : {
+      "Type" : "AWS::ApplicationAutoScaling::ScalableTarget",
+      "Properties" : {
+        "MinCapacity" : { "Ref" : "MinCapacity" },
+        "MaxCapacity" : { "Ref" : "MaxCapacity" },
+        "ResourceId" : { "Fn::Join" : [ "/", [ "service", { "Ref" : "ECSClusterName" }, { "Fn::GetAtt" : [ "ECSService" , "Name" ] } ]] },
+        "RoleARN" : "arn:aws:iam::374809787535:role/ecsAutoscaleRole",
+        "ScalableDimension" : "ecs:service:DesiredCount",
+        "ServiceNamespace" : "ecs"
+      }
+    },
+
+    "HighCPUUtilizationScalingPolicy" : {
+      "Type" : "AWS::ApplicationAutoScaling::ScalingPolicy",
+      "Properties" : {
+        "PolicyName": { "Fn::Join" : [ "-", [ "high-cpu-utilization-scaling-policy", { "Fn::GetAtt" : [ "ECSService" , "Name" ] } ]] },
+        "PolicyType" : "StepScaling",
+        "ScalingTargetId" : {"Ref": "ScalableTarget"},
+        "StepScalingPolicyConfiguration" : {
+          "AdjustmentType" : "PercentChangeInCapacity",
+          "Cooldown" : 300,
+          "MetricAggregationType" : "Average",
+          "StepAdjustments" : [{
+            "MetricIntervalLowerBound" : 0,
+            "ScalingAdjustment" : 30
+          }]
+        }
+      }
+    },
+
+    "HighMemoryUtilizationScalingPolicy" : {
+      "Type" : "AWS::ApplicationAutoScaling::ScalingPolicy",
+      "Properties" : {
+        "PolicyName": { "Fn::Join" : [ "-", [ "high-memory-utilization-scaling-policy", { "Fn::GetAtt" : [ "ECSService" , "Name" ] } ]] },
+        "PolicyType" : "StepScaling",
+        "ScalingTargetId" : {"Ref": "ScalableTarget"},
+        "StepScalingPolicyConfiguration" : {
+          "AdjustmentType" : "PercentChangeInCapacity",
+          "Cooldown" : 300,
+          "MetricAggregationType" : "Average",
+          "StepAdjustments" : [{
+            "MetricIntervalLowerBound" : 0,
+            "ScalingAdjustment" : 30
+          }]
+        }
+      }
+    },
+
+    "LowCPUUtilizationScalingPolicy" : {
+      "Type" : "AWS::ApplicationAutoScaling::ScalingPolicy",
+      "Properties" : {
+        "PolicyName": { "Fn::Join" : [ "-", [ "low-cpu-utilization-scaling-policy", { "Fn::GetAtt" : [ "ECSService" , "Name" ] } ]] },
+        "PolicyType" : "StepScaling",
+        "ScalingTargetId" : {"Ref": "ScalableTarget"},
+        "StepScalingPolicyConfiguration" : {
+          "AdjustmentType" : "ChangeInCapacity",
+          "Cooldown" : 300,
+          "MetricAggregationType" : "Average",
+          "StepAdjustments" : [{
+            "MetricIntervalUpperBound" : 0,
+            "ScalingAdjustment" : -1
+          }]
+        }
+      }
+    },
+
+    "HighCPUUtilizationAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "AlarmDescription" : { "Fn::Join" : [ " ", ["Service CPU utilization higher than", { "Ref" : "HighCpuUtilization" }, "percents" ]] },
+        "AlarmActions" : [
+          { "Ref" : "NotificationSNSTopic" },
+          { "Ref" : "HighCPUUtilizationScalingPolicy" }
+        ],
+        "MetricName" : "CPUUtilization",
+        "Namespace" : "AWS/ECS",
+        "Statistic" : "Average",
+        "Period" : "60",
+        "EvaluationPeriods" : "2",
+        "Threshold" : { "Ref" : "HighCpuUtilization" },
+        "Unit" : "Percent",
+        "ComparisonOperator" : "GreaterThanThreshold",
+        "Dimensions" : [
+          {
+            "Name" : "ClusterName", "Value" : { "Ref" : "ECSClusterName" }
+          },
+          {
+            "Name" : "ServiceName", "Value" : { "Fn::GetAtt" : [ "ECSService" , "Name" ] }
+          }
+        ]
+      }
+    },
+
+    "HighMemoryUtilizationAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "AlarmDescription" : { "Fn::Join" : [ " ", ["Service CPU utilization higher than", { "Ref" : "HighMemoryUtilization" }, "percents" ]] },
+        "AlarmActions" : [
+          { "Ref" : "NotificationSNSTopic" },
+          { "Ref" : "HighMemoryUtilizationScalingPolicy" }
+        ],
+        "MetricName" : "MemoryUtilization",
+        "Namespace" : "AWS/ECS",
+        "Statistic" : "Average",
+        "Period" : "60",
+        "EvaluationPeriods" : "2",
+        "Threshold" : { "Ref" : "HighMemoryUtilization" },
+        "Unit" : "Percent",
+        "ComparisonOperator" : "GreaterThanThreshold",
+        "Dimensions" : [
+          {
+            "Name" : "ClusterName", "Value" : { "Ref" : "ECSClusterName" }
+          },
+          {
+            "Name" : "ServiceName", "Value" : { "Fn::GetAtt" : [ "ECSService" , "Name" ] }
+          }
+        ]
+      }
+    },
+
+    "LowCPUUtilizationAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "AlarmDescription" : { "Fn::Join" : [ " ", ["Service CPU utilization lower than", { "Ref" : "LowCpuUtilization" }, "percents" ]] },
+        "AlarmActions" : [
+          { "Ref" : "LowCPUUtilizationScalingPolicy" }
+        ],
+        "MetricName" : "CPUUtilization",
+        "Namespace" : "AWS/ECS",
+        "Statistic" : "Average",
+        "Period" : "300",
+        "EvaluationPeriods" : "5",
+        "Threshold" : { "Ref" : "LowCpuUtilization" },
+        "Unit" : "Percent",
+        "ComparisonOperator" : "LessThanThreshold",
+        "Dimensions" : [
+          {
+            "Name" : "ClusterName", "Value" : { "Ref" : "ECSClusterName" }
+          },
+          {
+            "Name" : "ServiceName", "Value" : { "Fn::GetAtt" : [ "ECSService" , "Name" ] }
+          }
+        ]
+      }
+    },
+
+    "CriticalHighCPUUtilizationAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "AlarmDescription" : "Service CPU utilization higher than 150 percents",
+        "AlarmActions" : [
+          { "Ref" : "NotificationSNSTopic" }
+        ],
+        "MetricName" : "MemoryUtilization",
+        "Namespace" : "AWS/ECS",
+        "Statistic" : "Average",
+        "Period" : "60",
+        "EvaluationPeriods" : "5",
+        "Threshold" : "150",
+        "Unit" : "Percent",
+        "ComparisonOperator" : "GreaterThanThreshold",
+        "Dimensions" : [
+          {
+            "Name" : "ClusterName", "Value" : { "Ref" : "ECSClusterName" }
+          },
+          {
+            "Name" : "ServiceName", "Value" : { "Fn::GetAtt" : [ "ECSService" , "Name" ] }
+          }
+        ]
+      }
+    },
+
+    "CriticalHighMemoryUtilizationAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "AlarmDescription" : "Service Memory utilization higher than 80 percents",
+        "AlarmActions" : [
+          { "Ref" : "NotificationSNSTopic" }
+        ],
+        "MetricName" : "MemoryUtilization",
+        "Namespace" : "AWS/ECS",
+        "Statistic" : "Average",
+        "Period" : "60",
+        "EvaluationPeriods" : "5",
+        "Threshold" : "80",
+        "Unit" : "Percent",
+        "ComparisonOperator" : "GreaterThanThreshold",
+        "Dimensions" : [
+          {
+            "Name" : "ClusterName", "Value" : { "Ref" : "ECSClusterName" }
+          },
+          {
+            "Name" : "ServiceName", "Value" : { "Fn::GetAtt" : [ "ECSService" , "Name" ] }
+          }
+        ]
+      }
+    }
+
+  },
+
+  "Outputs": {
+    "ecsservicename": {
+      "Value": { "Ref": "ECSName" },
+      "Description" : "The name of ECS service."
+    },
+    "ecscluster": {
+      "Value": { "Ref": "ECSClusterName" },
+      "Description" : "The name of ECS cluster."
+    },
+    "taskdefinition": {
+      "Value": { "Ref" : "TaskDefinition" },
+      "Description" : "The ARN of TaskDefinition."
+    },
+    "ecsservice": {
+      "Value": { "Fn::GetAtt" : [ "ECSService" , "Name" ] },
+      "Description" : "The name of ECS Service."
+    },
+    "notificationsnstopic" : {
+      "Value" : { "Ref": "NotificationSNSTopic" },
+      "Description" : "The ARN of the SNS notification topic."
+    }
+  }
+}

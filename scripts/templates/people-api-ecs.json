@@ -1,0 +1,566 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This templates creates ECS cluster and auto scaling group for people API micro services",
+
+  "Parameters": {
+    "KeyName": {
+      "Description": "The EC2 Key Pair to allow SSH access to the instances",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "AllowedValues" : [ "value", "value" ],
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair.",
+      "Default": "value"
+    },
+    "ECSName": {
+      "Type": "String",
+      "Description": "name of ECS service."
+    },
+    "ExternalDNSName": {
+      "Type": "String",
+      "Default": "value",
+      "Description": "The external DNS name of Application Load Balancer."
+    },
+    "VPC": {
+      "Type": "AWS::EC2::VPC::Id",
+      "Default": "value",
+      "Description": "A VPC ID, such as vpc-a123baa3."
+    },
+    "Region": {
+      "Type": "String",
+      "Default": "us-east-1",
+      "AllowedValues": [
+        "us-east-1"
+      ],
+      "ConstraintDescription": "AWS region in which to create instances."
+    },
+    "VPCZoneIdentifier": {
+      "Type": "CommaDelimitedList",
+      "Default": "value, value",
+      "Description": "A list of subnet identifiers of Amazon Virtual Private Cloud (Amazon VPCs)."
+    },
+    "InstanceType" : {
+      "Description" : "The EC2 instance type",
+      "Type" : "String",
+      "Default" : "t2.medium",
+      "AllowedValues" : [ "t2.medium", "t2.large", "m4.large", "m4.xlarge", "m4.2xlarge", "c4.xlarge", "c4.2xlarge", "c4.4xlarge" ],
+      "ConstraintDescription" : "must be a valid EC2 instance type."
+    },
+    "ImageId" : {
+      "Description" : "Amazon ECS-optimized AMI Id",
+      "Type" : "String",
+      "Default" : "ami-3d55272a",
+      "ConstraintDescription" : "must be a valid Amazon ECS-optimized AMI."
+    },
+    "SecurityGroup" : {
+      "Description" : "Specifies a list of the IDs of the security groups to assign",
+      "Type" : "AWS::EC2::SecurityGroup::Id",
+      "Default" : "value",
+      "ConstraintDescription" : "must be the name of an existing security group"
+    },
+    "DesiredCapacity": {
+      "Type": "Number",
+      "Description": "Number of instances to launch in your ECS cluster.",
+      "MinValue" : "1",
+      "MaxValue" : "30",
+      "ConstraintDescription": "must be a number between 1 and 30"
+    },
+    "MinSize": {
+      "Description": "Minimum number of instances that can be launched in your ECS cluster.",
+      "Type": "Number",
+      "Default" : "1",
+      "MinValue" : "1",
+      "MaxValue" : "30",
+      "ConstraintDescription": "must be a number between 1 and 30"
+    },
+    "MaxSize": {
+      "Description": "Maximum number of instances that can be launched in your ECS cluster.",
+      "Type": "Number",
+      "Default" : "5",
+      "MinValue" : "3",
+      "MaxValue" : "30",
+      "ConstraintDescription": "must be a number between 3 and 30"
+    },
+    "LogRetentionInDays": {
+      "Type": "Number",
+      "Default" : "30",
+      "MinValue" : "1",
+      "MaxValue" : "356",
+      "Description": "The number of days log events are kept in CloudWatch Logs."
+    },
+    "OperatorEMail": {
+      "Description": "EMail address to notify if there are any ECS service notifications",
+      "Type": "String",
+      "Default": "value",
+      "AllowedPattern": "([a-zA-Z0-9_\\-\\.\\+]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)",
+      "ConstraintDescription": "must be a valid email address."
+    },
+    "ClusterHighCpuUtilization" : {
+      "Description" : "Threshold for CPU Utilization to trigger the cluster Auto Scaling group to add a container instance",
+      "Type" : "Number",
+      "Default" : "80",
+      "MinValue" : "1",
+      "MaxValue" : "100",
+      "ConstraintDescription": "must be a number between 1 and 100"
+    },
+    "ClusterHighCpuReservation" : {
+      "Description" : "Threshold for CPU Reservation to trigger the cluster Auto Scaling group to add a container instance",
+      "Type" : "Number",
+      "Default" : "80",
+      "MinValue" : "1",
+      "MaxValue" : "100",
+      "ConstraintDescription": "must be a number between 1 and 100"
+    },
+    "ClusterLowCpuReservation" : {
+      "Description" : "Threshold for CPU Reservation to trigger to remove a container instance from the cluster Auto Scaling group",
+      "Type" : "Number",
+      "Default" : "40",
+      "MinValue" : "0",
+      "MaxValue" : "50",
+      "ConstraintDescription": "must be a number between 10 and 50"
+    },
+    "ClusterHighMemoryReservation" : {
+      "Description" : "Threshold for Memory Reservation to trigger the cluster Auto Scaling group to add a container instance",
+      "Type" : "Number",
+      "Default" : "75",
+      "MinValue" : "1",
+      "MaxValue" : "100",
+      "ConstraintDescription": "must be a number between 1 and 100"
+    },
+    "ClusterLowMemoryReservation" : {
+      "Description" : "Threshold for Memory Reservation to trigger to remove a container instance from the cluster Auto Scaling group",
+      "Type" : "Number",
+      "Default" : "50",
+      "MinValue" : "0",
+      "MaxValue" : "70",
+      "ConstraintDescription": "must be a number between 0 and 70"
+    },
+    "Usage": {
+      "Type": "String",
+      "Default": "people-api"
+    },
+    "Environment": {
+      "Description" : "Environment name",
+      "Type": "String",
+      "Default": "development",
+      "AllowedValues" : [ "development", "test", "staging", "production" ],
+      "ConstraintDescription" : "Must be one of \"development\", \"test\", \"staging\", \"production\""
+    },
+    "Owner": {
+      "Type": "String",
+      "Default": "people-api"
+    }
+  },
+
+  "Resources": {
+
+    "NotificationSNSTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName" : { "Fn::Join" : ["-", ["ECS", "Monitoring", { "Ref" : "ECSName"}]]} ,
+        "Subscription": [ { "Endpoint": { "Ref": "OperatorEMail" }, "Protocol": "email" } ]
+      }
+    },
+
+    "ECSCluster": {
+      "Type": "AWS::ECS::Cluster"
+    },
+
+    "ECSAutoScalingGroup" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "AvailabilityZones": { "Fn::GetAZs" : { "Ref" : "AWS::Region" } },
+        "VPCZoneIdentifier": { "Ref" : "VPCZoneIdentifier" },
+        "Cooldown": "300",
+        "MinSize" : { "Ref" : "MinSize" },
+        "MaxSize" : { "Ref" : "MaxSize" },
+        "DesiredCapacity" : { "Ref" : "DesiredCapacity" },
+        "HealthCheckGracePeriod": "120",
+        "HealthCheckType": "EC2",
+        "LaunchConfigurationName" : { "Ref" : "ContainerInstancesLaunchConfig" },
+        "NotificationConfiguration" : {
+          "TopicARN" : { "Ref" : "NotificationSNSTopic" },
+          "NotificationTypes" : [ "autoscaling:EC2_INSTANCE_LAUNCH",
+            "autoscaling:EC2_INSTANCE_LAUNCH_ERROR",
+            "autoscaling:EC2_INSTANCE_TERMINATE",
+            "autoscaling:EC2_INSTANCE_TERMINATE_ERROR"]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Join" : [ "-", [ { "Ref" : "ECSName" }, "cluster" ] ] },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key" : "layer",
+            "Value" : "node",
+            "PropagateAtLaunch" : true
+          },
+          {
+            "Key" : "usage",
+            "Value" : { "Ref" : "Usage" },
+            "PropagateAtLaunch" : true
+          },
+          {
+            "Key" : "environment",
+            "Value" : { "Ref" : "Environment" },
+            "PropagateAtLaunch" : true
+          },
+          {
+            "Key" : "owner",
+            "Value" : { "Ref" : "Owner" },
+            "PropagateAtLaunch" : true
+          }
+        ]
+      }
+    },
+
+    "ContainerInstancesLaunchConfig": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "AssociatePublicIpAddress": false,
+        "EbsOptimized": false,
+        "ImageId" : { "Ref" : "ImageId" },
+        "InstanceType" : { "Ref" : "InstanceType" },
+        "KeyName" : { "Ref" : "KeyName" },
+        "IamInstanceProfile": "ecs-instance-role",
+        "InstanceMonitoring": "true",
+        "SecurityGroups": [
+          "value"
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": { "VolumeSize": 8 }
+          },
+          {
+            "DeviceName": "/dev/xvdcz",
+            "Ebs": { "VolumeSize": 100 }
+          }
+        ],
+        "UserData" : { "Fn::Base64" : { "Fn::Join" : ["", [
+          "#!/bin/bash\n\n",
+          "yum install -y aws-cli\n",
+          "aws s3 cp s3://<value>/configurations/docker/index.docker.io/ecs.config /etc/ecs/ecs.config\n",
+          "echo -en '\n'", ">> /etc/ecs/ecs.config\n",
+          "echo ECS_CLUSTER=", { "Ref": "ECSCluster" }, " >> /etc/ecs/ecs.config\n"
+        ]]}}
+      }
+    },
+
+    "ApplicationLoadBalancer" : {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Scheme" : "internal",
+        "Subnets" : { "Ref" : "VPCZoneIdentifier" },
+        "SecurityGroups": [ {"Ref": "SecurityGroup"} ],
+        "LoadBalancerAttributes" : [
+          { "Key" : "idle_timeout.timeout_seconds", "Value" : "120" }
+        ],
+        "Tags" : [
+          {
+            "Key": "name",
+            "Value": { "Fn::Join" : [ "-", [ { "Ref" : "ECSName" }, "alb" ] ] }
+          },
+          {
+            "Key" : "layer",
+            "Value" : "load-balancer"
+          },
+          {
+            "Key" : "usage",
+            "Value" : { "Ref" : "Usage" }
+          },
+          {
+            "Key" : "environment",
+            "Value" : { "Ref" : "Environment" }
+          },
+          {
+            "Key" : "owner",
+            "Value" : { "Ref" : "Owner" }
+          }
+        ]
+      }
+    },
+
+    "ALBListener" : {
+      "Type" : "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties" : {
+        "DefaultActions" : [{
+          "Type" : "forward",
+          "TargetGroupArn" : { "Ref" : "ALBTargetGroup" }
+        }],
+        "LoadBalancerArn" : { "Ref" : "ApplicationLoadBalancer" },
+        "Port" : "443",
+        "Protocol" : "HTTPS",
+        "Certificates": [ { "CertificateArn" : "value" } ]
+      }
+    },
+
+    "ALBTargetGroup" : {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "HealthCheckIntervalSeconds": 30,
+        "HealthCheckPath": "/v1/health",
+        "HealthCheckProtocol": "HTTP",
+        "HealthCheckTimeoutSeconds": 5,
+        "HealthyThresholdCount": 2,
+        "UnhealthyThresholdCount": 2,
+        "Matcher" : {
+          "HttpCode" : "200"
+        },
+        "TargetGroupAttributes": [{
+          "Key": "deregistration_delay.timeout_seconds",
+          "Value": "120"
+        }],
+        "Port": 80,
+        "Protocol": "HTTP",
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "Tags" : [
+          {
+            "Key": "name",
+            "Value": { "Fn::Join" : [ "-", [ { "Ref" : "ECSName" }, "default-target-group" ] ] }
+          },
+          {
+            "Key" : "layer",
+            "Value" : "load-balancer"
+          },
+          {
+            "Key" : "usage",
+            "Value" : { "Ref" : "Usage" }
+          },
+          {
+            "Key" : "environment",
+            "Value" : { "Ref" : "Environment" }
+          },
+          {
+            "Key" : "owner",
+            "Value" : { "Ref" : "Owner" }
+          }
+        ]
+      }
+    },
+
+    "DNSRecord" : {
+      "Type" : "AWS::Route53::RecordSet",
+      "Properties" : {
+        "HostedZoneName" : "value",
+        "Name" : { "Ref": "ExternalDNSName" },
+        "Type" : "CNAME",
+        "TTL" : "300",
+        "ResourceRecords" : [ { "Fn::GetAtt" : [ "ApplicationLoadBalancer" , "DNSName" ]} ]
+      }
+    },
+
+    "CloudWatchLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": { "Ref" : "ECSName" },
+        "RetentionInDays": { "Ref" : "LogRetentionInDays" }
+      }
+    },
+
+    "ClusterHighCPUUtilizationScaleUpPolicy" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AdjustmentType" : "ChangeInCapacity",
+        "AutoScalingGroupName" : { "Ref" : "ECSAutoScalingGroup" },
+        "Cooldown" : "300",
+        "ScalingAdjustment" : "2"
+      }
+    },
+
+    "ClusterHighCPUReservationScaleUpPolicy" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AdjustmentType" : "ChangeInCapacity",
+        "AutoScalingGroupName" : { "Ref" : "ECSAutoScalingGroup" },
+        "Cooldown" : "300",
+        "ScalingAdjustment" : "2"
+      }
+    },
+
+    "ClusterHighMemoryReservationScaleUpPolicy" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AdjustmentType" : "ChangeInCapacity",
+        "AutoScalingGroupName" : { "Ref" : "ECSAutoScalingGroup" },
+        "Cooldown" : "300",
+        "ScalingAdjustment" : "2"
+      }
+    },
+
+    "ClusterLowMemoryReservationScaleDownPolicy" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AdjustmentType" : "ChangeInCapacity",
+        "AutoScalingGroupName" : { "Ref" : "ECSAutoScalingGroup" },
+        "Cooldown" : "1200",
+        "ScalingAdjustment" : "-1"
+      }
+    },
+
+    "HighCPUUtilizationAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "AlarmDescription" : { "Fn::Join" : [ "-", ["Cluster CPU utilization higher than", { "Ref" : "ClusterHighCpuUtilization" }, "percents" ]] },
+        "AlarmActions" : [
+          { "Ref" : "NotificationSNSTopic" },
+          { "Ref" : "ClusterHighCPUUtilizationScaleUpPolicy" }
+        ],
+        "MetricName" : "CPUUtilization",
+        "Namespace" : "AWS/ECS",
+        "Statistic" : "Average",
+        "Period" : "60",
+        "EvaluationPeriods" : "3",
+        "Threshold" : { "Ref" : "ClusterHighCpuUtilization" },
+        "Unit" : "Percent",
+        "ComparisonOperator" : "GreaterThanThreshold",
+        "Dimensions" : [
+          {
+            "Name" : "ClusterName", "Value" : { "Ref" : "ECSCluster" }
+          }
+        ]
+      }
+    },
+
+    "HighCPUReservationAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "AlarmDescription" : { "Fn::Join" : [ "-", ["Cluster CPU reservation higher than", { "Ref" : "ClusterHighCpuReservation" }, "percents" ]] },
+        "AlarmActions" : [
+          { "Ref" : "NotificationSNSTopic" },
+          { "Ref" : "ClusterHighCPUReservationScaleUpPolicy" }
+        ],
+        "MetricName" : "CPUReservation",
+        "Namespace" : "AWS/ECS",
+        "Statistic" : "Average",
+        "Period" : "60",
+        "EvaluationPeriods" : "3",
+        "Threshold" : { "Ref" : "ClusterHighCpuReservation" },
+        "Unit" : "Percent",
+        "ComparisonOperator" : "GreaterThanThreshold",
+        "Dimensions" : [
+          {
+            "Name" : "ClusterName", "Value" : { "Ref" : "ECSCluster" }
+          }
+        ]
+      }
+    },
+
+    "HighMemoryReservationAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "AlarmDescription" : { "Fn::Join" : [ "-", ["Cluster Memory reservation higher than", { "Ref" : "ClusterHighMemoryReservation" }, "percents" ]] },
+        "AlarmActions" : [
+          { "Ref" : "NotificationSNSTopic" },
+          { "Ref" : "ClusterHighMemoryReservationScaleUpPolicy" }
+        ],
+        "MetricName" : "MemoryReservation",
+        "Namespace" : "AWS/ECS",
+        "Statistic" : "Average",
+        "Period" : "60",
+        "EvaluationPeriods" : "3",
+        "Threshold" : { "Ref" : "ClusterHighMemoryReservation" },
+        "Unit" : "Percent",
+        "ComparisonOperator" : "GreaterThanThreshold",
+        "Dimensions" : [
+          {
+            "Name" : "ClusterName", "Value" : { "Ref" : "ECSCluster" }
+          }
+        ]
+      }
+    },
+
+    "LowMemoryReservationAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "AlarmDescription" : { "Fn::Join" : [ " ", ["Cluster Memory reservation lower than", { "Ref" : "ClusterLowMemoryReservation" }, "percents" ]] },
+        "AlarmActions" : [
+          { "Ref" : "ClusterLowMemoryReservationScaleDownPolicy" }
+        ],
+        "MetricName" : "MemoryReservation",
+        "Namespace" : "AWS/ECS",
+        "Statistic" : "Average",
+        "Period" : "300",
+        "EvaluationPeriods" : "5",
+        "Threshold" : { "Ref" : "ClusterLowMemoryReservation" },
+        "Unit" : "Percent",
+        "ComparisonOperator" : "LessThanThreshold",
+        "Dimensions" : [
+          {
+            "Name" : "ClusterName", "Value" : { "Ref" : "ECSCluster" }
+          }
+        ]
+      }
+    },
+
+    "CriticalHighCPUUtilizationAlarm" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "AlarmDescription" : "Cluster CPU utilization higher than 95 percents",
+        "AlarmActions" : [ { "Ref" : "NotificationSNSTopic" } ],
+        "MetricName" : "CPUUtilization",
+        "Namespace" : "AWS/ECS",
+        "Statistic" : "Average",
+        "Period" : "60",
+        "EvaluationPeriods" : "3",
+        "Threshold" : "95",
+        "Unit" : "Percent",
+        "ComparisonOperator" : "GreaterThanThreshold",
+        "Dimensions" : [
+          {
+            "Name" : "ClusterName", "Value" : { "Ref" : "ECSCluster" }
+          }
+        ]
+      }
+    }
+
+  },
+
+  "Outputs": {
+    "ecsservicename": {
+      "Value": { "Ref": "ECSName" },
+      "Description" : "The name of ECS service."
+    },
+    "ecscluster": {
+      "Value": { "Ref": "ECSCluster" },
+      "Description" : "The name of ECS cluster."
+    },
+    "targetgrouparn" : {
+      "Value" : { "Ref" : "ALBTargetGroup" },
+      "Description" : "An Application load balancer target group Amazon Resource Name (ARN) to associate with the Amazon ECS service."
+    },
+    "listenerarn" : {
+      "Value" : { "Ref" : "ALBListener" },
+      "Description" : "The Amazon Resource Name (ARN) of the listener."
+    },
+    "albname" : {
+      "Value" : { "Fn::GetAtt" : [ "ApplicationLoadBalancer" , "LoadBalancerName" ] },
+      "Description" : "The name of Application Load Balancer."
+    },
+    "albdnsname" : {
+      "Value" : { "Fn::GetAtt" : [ "ApplicationLoadBalancer" , "DNSName" ] },
+      "Description" : "The DNS name of Application Load Balancer."
+    },
+    "albfullname" : {
+      "Value" : { "Fn::GetAtt" : [ "ApplicationLoadBalancer" , "LoadBalancerFullName" ] },
+      "Description" : "The full name of Application Load Balancer."
+    },
+    "albexternaldnsname" : {
+      "Value" : { "Ref": "ExternalDNSName" },
+      "Description" : "The external DNS name of Application Load Balancer."
+    },
+    "cloudwatchloggroup" : {
+      "Value" : { "Ref": "CloudWatchLogGroup" },
+      "Description" : "The ARN of the CloudWatch Logs log group."
+    },
+    "notificationsnstopic" : {
+      "Value" : { "Ref": "NotificationSNSTopic" },
+      "Description" : "The ARN of the SNS notification topic."
+    },
+    "notificationsnstopicname" : {
+      "Value" : { "Fn::GetAtt" : [ "NotificationSNSTopic" , "TopicName" ] },
+      "Description" : "The name of the SNS notification topic."
+    }
+  }
+}

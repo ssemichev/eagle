@@ -1,0 +1,61 @@
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "name.first_name.hash": {
+              "query": "carolyn",
+              "fuzziness": 2,
+              "prefix_length": 1
+            }
+          }
+        },
+        {
+          "bool": {
+            "should": [
+              {
+                "match": {
+                  "name.last_name.hash": {
+                    "query": "shaw jn",
+                    "fuzziness": 2,
+                    "prefix_length": 1,
+                    "boost": 3
+                  }
+                }
+              },
+              {
+                "match": {
+                  "name.last_name_with_suffix": {
+                    "query": "shaw jn",
+                    "fuzziness": 2,
+                    "prefix_length": 1,
+                    "boost": 4
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "bool": {
+            "should": [
+              {
+                "term": {
+                  "reg_zip": "10453",
+                  "boost": 7
+                }
+              },
+              {
+                "term": {
+                  "mail_zip": "10453",
+                  "boost": 5
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

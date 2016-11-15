@@ -1,0 +1,179 @@
+{
+  "settings": {
+    "index": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "routing.allocation.total_shards_per_node": 5
+    },
+    "analysis": {
+      "analyzer": {
+        "uax_url_email": { "filter": [ "lowercase" ], "tokenizer": "uax_url_email" },
+        "lowercase_keyword": { "filter": [ "lowercase" ], "tokenizer": "keyword"},
+        "single_word_analyzer": {
+          "type": "custom",
+          "tokenizer": "keyword",
+          "char_filter": [
+            "remove_non_alphabetical"
+          ],
+          "filter": [
+            "lowercase", "asciifolding"
+          ]
+        }
+      },
+      "char_filter": {
+        "remove_non_alphabetical": {
+          "type": "pattern_replace",
+          "pattern": "[^A-zÀ-ÿ]+"
+        }
+      }
+    }
+  },
+  "mappings": {
+    "person": {
+      "_all" : { "enabled" : false },
+      "dynamic": "strict",
+      "properties": {
+        "id": { "type": "string", "index": "not_analyzed" },
+        "sources": { "type": "string", "index": "not_analyzed" },
+        "captured_at": { "type": "date" },
+        "identities": {
+          "properties": {
+            "dt_id": { "type": "string", "index": "not_analyzed" },
+            "dt_reg_id": { "type": "string", "index": "not_analyzed" },
+            "state_voter_id": { "type": "string", "index": "not_analyzed" },
+            "jurisdiction_voter_id": { "type": "string", "index": "not_analyzed" },
+            "affidavit_id": { "type": "string", "index": "not_analyzed" },
+            "legacy_id": { "type": "string", "index": "not_analyzed" },
+            "source_id": { "type": "string", "index": "not_analyzed" }
+          }
+        },
+        "name": {
+          "properties": {
+            "instances": { "type": "integer" },
+            "captured_at": { "type": "date" },
+            "clients": { "type": "string", "index": "not_analyzed" },
+            "sources":  { "type": "string", "index": "not_analyzed" },
+            "owners":  { "type": "string", "index": "not_analyzed" },
+            "rental_lists":  { "type": "string", "index": "not_analyzed" },
+            "value": { "type": "string" },
+            "hash_value": { "type": "string", "index": "not_analyzed" },
+            "first_name": {
+              "type": "string",
+              "analyzer": "lowercase_keyword",
+              "fields": {
+                "hash": { "type": "string", "analyzer": "single_word_analyzer" }
+              }
+            },
+            "middle_name": { "type": "string", "analyzer": "single_word_analyzer" },
+            "last_name": {
+              "type": "string", "analyzer": "lowercase_keyword",
+              "fields": {
+                "hash": { "type": "string", "analyzer": "single_word_analyzer" }
+              }
+            },
+            "last_name_with_suffix": { "type": "string", "analyzer": "single_word_analyzer" },
+            "prefix": { "type": "string", "analyzer": "single_word_analyzer" },
+            "suffix": { "type": "string", "analyzer": "single_word_analyzer" }
+          }
+        },
+        "addresses": {
+          "type" : "nested",
+          "properties": {
+            "instances": { "type": "integer" },
+            "captured_at": { "type": "date" },
+            "clients": { "type": "string", "index": "not_analyzed" },
+            "sources":  { "type": "string", "index": "not_analyzed" },
+            "owners":  { "type": "string", "index": "not_analyzed" },
+            "rental_lists":  { "type": "string", "index": "not_analyzed" },
+            "value": { "type": "string", "index": "not_analyzed" },
+            "hash_value": { "type": "string", "index": "not_analyzed" },
+            "raw_value": { "type": "string" },
+            "address1": { "type": "string" },
+            "address2": { "type": "string" },
+            "street1": {
+              "type": "string",
+              "analyzer": "lowercase_keyword",
+              "fields": {
+                "hash": { "type": "string", "analyzer": "single_word_analyzer" }
+              }
+            },
+            "street2": {
+              "type": "string",
+              "analyzer": "lowercase_keyword",
+              "fields": {
+                "hash": { "type": "string", "analyzer": "single_word_analyzer" }
+              }
+            },
+            "city": {
+              "type": "string",
+              "analyzer": "lowercase_keyword",
+              "fields": {
+                "hash": { "type": "string", "analyzer": "single_word_analyzer" }
+              }
+            },
+            "county": {
+              "type": "string",
+              "analyzer": "lowercase_keyword",
+              "fields": {
+                "hash": { "type": "string", "analyzer": "single_word_analyzer" }
+              }
+            },
+            "state": { "type": "string", "index": "not_analyzed" },
+            "zip": { "type": "string" , "index": "not_analyzed" },
+            "zip4": { "type": "string", "index": "not_analyzed" },
+            "lat": { "type": "float" },
+            "lon": { "type": "float" },
+            "mail_score": { "type": "string", "index": "not_analyzed" },
+            "cen_tract": { "type": "string", "index": "not_analyzed" },
+            "cen_block": { "type": "string", "index": "not_analyzed" },
+            "asofdate": { "type": "date" },
+            "dpc": { "type": "string", "index": "not_analyzed" },
+            "crc": { "type": "string", "index": "not_analyzed" },
+            "fips": { "type": "string", "index": "not_analyzed" },
+            "cd": { "type": "string", "index": "not_analyzed" },
+            "sd": { "type": "string", "index": "not_analyzed" },
+            "ld": { "type": "string", "index": "not_analyzed" },
+            "type": { "type": "string", "index": "not_analyzed" },
+            "location": {"type":"geo_point", "ignore_malformed": true, "lat_lon":true},
+            "congressional_districts": { "type": "string", "index": "not_analyzed" }
+          }
+        },
+        "phones": {
+          "type" : "nested",
+          "properties": {
+            "instances": { "type": "integer" },
+            "captured_at": { "type": "date" },
+            "clients": { "type": "string", "index": "not_analyzed" },
+            "sources":  { "type": "string", "index": "not_analyzed" },
+            "owners":  { "type": "string", "index": "not_analyzed" },
+            "rental_lists":  { "type": "string", "index": "not_analyzed" },
+            "value": { "type": "string", "index": "not_analyzed" },
+            "hash_value": { "type": "string", "index": "not_analyzed" },
+            "area_code": { "type": "string", "index": "not_analyzed" },
+            "number": { "type": "string", "index": "not_analyzed" },
+            "phone_reliability": { "type": "integer" },
+            "type": { "type": "string", "index": "not_analyzed" }
+          }
+        },
+        "values_string": {
+          "properties": {
+            "instances": { "type": "integer" },
+            "captured_at": { "type": "date" },
+            "clients": { "type": "string", "index": "not_analyzed" },
+            "sources":  { "type": "string", "index": "not_analyzed" },
+            "owners":  { "type": "string", "index": "not_analyzed" },
+            "rental_lists":  { "type": "string", "index": "not_analyzed" },
+            "original_name": { "type": "string", "index": "not_analyzed" },
+            "name": { "type": "string", "index": "not_analyzed" },
+            "value": { "type": "string", "index": "not_analyzed" },
+            "value_s": { "type": "string", "index": "not_analyzed" }
+          }
+        },
+        "dob": { "type": "string" , "index": "not_analyzed" },
+        "county": { "type": "string" , "index": "not_analyzed" },
+        "mail_zip": { "type": "string" , "index": "not_analyzed" },
+        "reg_zip": { "type": "string" , "index": "not_analyzed" }
+      }
+    }
+  }
+}

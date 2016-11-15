@@ -1,0 +1,38 @@
+[
+  {
+    "ParameterKey": "ECSName",
+    "ParameterValue": "people-api-dev"
+  },
+  {
+    "ParameterKey": "ExternalDNSName",
+    "ParameterValue": "people-dev.<DOMAIN>.io"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t2.medium"
+  },
+  {
+    "ParameterKey": "DesiredCapacity",
+    "ParameterValue": "4"
+  },
+  {
+    "ParameterKey": "MinSize",
+    "ParameterValue": "4"
+  },
+  {
+    "ParameterKey": "MaxSize",
+    "ParameterValue": "10"
+  },
+  {
+    "ParameterKey": "ClusterLowMemoryReservation",
+    "ParameterValue": "40"
+  },
+  {
+    "ParameterKey": "Usage",
+    "ParameterValue": "people-api.development"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "development"
+  }
+]
